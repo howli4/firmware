@@ -1,0 +1,39 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "build",
+            "type": "shell",
+            "command": "python3 per_build.py",
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            }
+        },
+        {
+            "label": "build_bl",
+            "type": "shell",
+            "command": "python3 per_build.py --bootloader",
+            "group": {
+                "kind": "build"
+            }
+        },
+        {
+            "label": "can_gen",
+            "type": "shell",
+            "command": "python3 ./common/daq/generation/generator.py",
+            "problemMatcher": []
+        },
+        {
+            "label": "faults_gen",
+            "type": "shell",
+            "command": "python3 ./common/faults/generation/generator.py",
+            "problemMatcher": []
+        },
+        {
+            "label": "docs_gen",
+            "type": "shell",
+            "command": "doxygen Doxyfile"
+        }
+    ]
+}
