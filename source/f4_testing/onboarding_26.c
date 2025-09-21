@@ -48,6 +48,9 @@ void ledblink3();
 void ledblink4();
 void ledblink5();
 
+// Interrupt handler for EXTI7
+void EXTI9_5_IRQHandler();
+
 defineThreadStack(ledblink1, 100, osPriorityNormal, 64);
 defineThreadStack(ledblink2, 100, osPriorityNormal, 64);
 defineThreadStack(ledblink3, 250, osPriorityNormal, 64);
@@ -65,6 +68,25 @@ int main() {
     if (!PHAL_initGPIO(gpio_config, sizeof(gpio_config) / sizeof(GPIOInitConfig_t))) {
         HardFault_Handler();
     }
+
+    // Enable SYSCFG clock
+    RCC->APB2ENR |= RCC_APB2ENR_SYSCFGEN;
+
+    // Route EXTI7 to Port B
+    SYSCFG->EXTICR[1] |= (0b0001 << 12);
+
+    // Unmask EXTI7 interrupt
+    EXTI->IMR |= (0x1 << 7);
+
+    // Enable rising edge trigger on EXTI7
+    EXTI->RTSR |= (0x1 << 7);
+
+    // Disable falling edge trigger on EXTI7
+    EXTI->FTSR &= ~(0x1 << 7);
+
+    // Enable EXTI9_5 in NVIC
+    NVIC_EnableIRQ(EXTI9_5_IRQn);
+
 
     // Create threads
     createThread(ledblink1);
@@ -102,6 +124,16 @@ void HardFault_Handler() {
     while (1) {
         __asm__("nop");
     }
+}
+
+void EXTI9_5_IRQHandler() {
+	// Check who triggered this interrupt
+	if (EXTI->PR & (1 << 7)) {
+		// Clear the pending bit
+		EXTI->PR |= (1 << 7);
+
+		// Do something cool here
+	}
 }
 
 #endif // F4_TESTING_CHOSEN == TEST_ONBOARDING_26
