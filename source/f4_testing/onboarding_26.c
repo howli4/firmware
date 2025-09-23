@@ -43,25 +43,27 @@ ClockRateConfig_t clock_config = {
 
 void HardFault_Handler();
 void ledblink1();
-void ledblink2();
-void ledblink3();
-void ledblink4();
-void ledblink5();
+void greenLEDBlink();
+void orangeLEDBlink();
+void redLEDBlink();
+void blueLEDBlink();
+void addDelay(int delay);
 
-// Interrupt handler for EXTI7
+void bitwiseInit();
 void EXTI9_5_IRQHandler();
 
+bool normFreq = true;
+ 
 defineThreadStack(ledblink1, 100, osPriorityNormal, 64);
-defineThreadStack(ledblink2, 100, osPriorityNormal, 64);
-defineThreadStack(ledblink3, 250, osPriorityNormal, 64);
-defineThreadStack(ledblink4, 500, osPriorityNormal, 64);
-defineThreadStack(ledblink5, 1000, osPriorityNormal, 64);
+defineThreadStack(greenLEDBlink, 100, osPriorityNormal, 64);
+defineThreadStack(orangeLEDBlink, 250, osPriorityNormal, 64);
+defineThreadStack(redLEDBlink, 500, osPriorityNormal, 64);
+defineThreadStack(blueLEDBlink, 500, osPriorityNormal, 64);
 
 
 int main() {
     osKernelInitialize();
 
-    // Initialize hardware
     if (0 != PHAL_configureClockRates(&clock_config)) {
         HardFault_Handler();
     }
@@ -69,31 +71,13 @@ int main() {
         HardFault_Handler();
     }
 
-    // Enable SYSCFG clock
-    RCC->APB2ENR |= RCC_APB2ENR_SYSCFGEN;
+    bitwiseInit();
 
-    // Route EXTI7 to Port B
-    SYSCFG->EXTICR[1] |= (0b0001 << 12);
-
-    // Unmask EXTI7 interrupt
-    EXTI->IMR |= (0x1 << 7);
-
-    // Enable rising edge trigger on EXTI7
-    EXTI->RTSR |= (0x1 << 7);
-
-    // Disable falling edge trigger on EXTI7
-    EXTI->FTSR &= ~(0x1 << 7);
-
-    // Enable EXTI9_5 in NVIC
-    NVIC_EnableIRQ(EXTI9_5_IRQn);
-
-
-    // Create threads
     createThread(ledblink1);
-    createThread(ledblink2);
-    createThread(ledblink3);
-    createThread(ledblink4);
-    createThread(ledblink5);
+    createThread(greenLEDBlink);
+    createThread(orangeLEDBlink);
+    createThread(redLEDBlink);
+    createThread(blueLEDBlink);
 
     osKernelStart(); // Go!
 
@@ -104,20 +88,23 @@ void ledblink1() {
     PHAL_toggleGPIO(GPIOB, 9);
 }
 
-void ledblink2() {
+void greenLEDBlink() {
     PHAL_toggleGPIO(GPIOD, 12);
 }
 
-void ledblink3() {
+void orangeLEDBlink() {
     PHAL_toggleGPIO(GPIOD, 13);
 }
 
-void ledblink4() {
+void redLEDBlink() {
     PHAL_toggleGPIO(GPIOD, 14);
 }
 
-void ledblink5() {
+void blueLEDBlink() {
     PHAL_toggleGPIO(GPIOD, 15);
+    if(normFreq){
+        osDelay(500);
+    }
 }
 
 void HardFault_Handler() {
@@ -126,13 +113,24 @@ void HardFault_Handler() {
     }
 }
 
-void EXTI9_5_IRQHandler() {
-	// Check who triggered this interrupt
-	if (EXTI->PR & (1 << 7)) {
-		// Clear the pending bit
-		EXTI->PR |= (1 << 7);
+void bitwiseInit() {
+    RCC->APB2ENR |= RCC_APB2ENR_SYSCFGEN;
 
-		// Do something cool here
+    SYSCFG->EXTICR[1] |= (0b0001 << 12);
+
+    EXTI->IMR |= (0x1 << 7);
+
+    EXTI->RTSR |= (0x1 << 7);
+
+    EXTI->FTSR &= ~(0x1 << 7);
+
+    NVIC_EnableIRQ(EXTI9_5_IRQn);
+}
+
+void EXTI9_5_IRQHandler() {
+	if (EXTI->PR & (1 << 7)) {
+		EXTI->PR |= (1 << 7);
+        normFreq = !normFreq;
 	}
 }
 
